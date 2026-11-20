@@ -1909,6 +1909,20 @@ function $handleCompositionStart(event: CompositionEvent): boolean {
 function $handleCompositionEnd(event: CompositionEvent): boolean {
   const editor = getActiveEditor();
   editor._inputState.compositionPhase = 'idle';
+  if (event.data === '') {
+    const prev = $getPreviousSelection();
+    const sel = $getSelection();
+    if (
+      $isRangeSelection(prev) &&
+      $isRangeSelection(sel) &&
+      sel.isCollapsed() &&
+      prev.anchor.key === editor._compositionKey
+    ) {
+      sel.format = prev.format;
+      sel.style = prev.style;
+      sel.dirty = true;
+    }
+  }
   $onCompositionEndImpl(editor, event.data);
   $addUpdateTag(COMPOSITION_END_TAG);
   return true;
