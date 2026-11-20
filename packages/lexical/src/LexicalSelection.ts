@@ -3701,7 +3701,7 @@ export function $internalCreateRangeSelection(
     previousRange ? previousRange.format : 0,
     previousRange ? previousRange.style : '',
   );
-  if (previousRange) {
+  if (previousRange && previousRange.anchor.key !== editor._compositionKey) {
     $internalRefreshSelectionFormatAndStyle(
       newSelection,
       previousRange.anchor.key,
