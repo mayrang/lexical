@@ -59,6 +59,7 @@ import {
 import {$comparePointCaretNextAcrossSlots} from './caret/LexicalCaret';
 import {IS_FIREFOX} from './environment';
 import {
+  COMPOSITION_START_CHAR,
   COMPOSITION_SUFFIX,
   DOM_TEXT_TYPE,
   TEXT_TYPE_TO_FORMAT,
@@ -3701,7 +3702,10 @@ export function $internalCreateRangeSelection(
     previousRange ? previousRange.format : 0,
     previousRange ? previousRange.style : '',
   );
-  if (previousRange) {
+  if (
+    previousRange &&
+    !$isEmptiedCompositionAnchor(editor, previousRange.anchor.key)
+  ) {
     $internalRefreshSelectionFormatAndStyle(
       newSelection,
       previousRange.anchor.key,
@@ -3711,6 +3715,35 @@ export function $internalCreateRangeSelection(
   // whether the DOM must be corrected; refreshing its format is not a move.
   newSelection.dirty = dirty;
   return newSelection;
+}
+
+/**
+ * Whether the caret was in the node being composed and the IME emptied that
+ * node's DOM, so the DOM caret now resolves into a neighbour. The caret did not
+ * move; the text it was in did. ibus-hangul on Chromium does this for every
+ * syllable: it deletes the composed text, then inserts it as plain text.
+ */
+function $isEmptiedCompositionAnchor(
+  editor: LexicalEditor,
+  key: NodeKey,
+): boolean {
+  if (key !== editor._compositionKey) {
+    return false;
+  }
+  const node = $getNodeByKey(key);
+  if (!$isTextNode(node) || !node.isAttached()) {
+    return true;
+  }
+  // The IME has emptied the DOM, which the node does not reflect yet.
+  const element = editor.getElementByKey(key);
+  const domText = element === null ? '' : element.textContent || '';
+  return (
+    domText
+      .split(COMPOSITION_SUFFIX)
+      .join('')
+      .split(COMPOSITION_START_CHAR)
+      .join('') === ''
+  );
 }
 
 /**
